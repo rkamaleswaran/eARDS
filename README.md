@@ -50,12 +50,12 @@ Respiratory Rate|respiratory_rate|Continous|
 Pattasium|potassium|Continous|
 Anion Gap|anion_gap|Continous|
 SpO2|spo2|Continous|
-Oxgen Therapy|oxygen_therapy|Binary Indicator|
-Mechanical Ventilation|mech_ventilation|Binary Indicator|
-Vasopressor|vasopresso|Binary Indicator|
-Vasocount|vasocount|Binary Indicator|
-Ionotrope|ionotrope|Binary Indicator|
-Ionocount|ionocount|Binary Indicator|
+Oxgen Therapy|oxygen_therapy|Binary Indicator|None|
+Mechanical Ventilation|mech_ventilation|Binary Indicator|None|
+Vasopressor|vasopresso|Binary Indicator|None|
+Vasocount|vasocount|Binary Indicator|None|
+Ionotrope|ionotrope|Binary Indicator|None|
+Ionocount|ionocount|Binary Indicator|None|
 
 The Demographics file contains following variables with the name mentioned in the table below:
 
