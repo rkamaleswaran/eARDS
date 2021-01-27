@@ -15,6 +15,7 @@ comorbidity_path = '/data/jupyter/CVD/HF/comorbidity.csv'
 
 data = load_data(data_path, demgraphic_path, age_path, comorbidity_path)
 
+
 test_acc = test_performance(model_pred_covid, data)
 
 

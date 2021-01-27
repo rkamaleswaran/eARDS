@@ -9,6 +9,8 @@ from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 from sklearn.utils import shuffle
 from sklearn.model_selection import cross_validate, GroupShuffleSplit
 import scipy.stats
+from sklearn import metrics 
+
 
 
 def mean_confidence_interval(data, confidence=0.95):
@@ -20,7 +22,7 @@ def mean_confidence_interval(data, confidence=0.95):
 
 
 def test_performance(model, data, hours=[6],thresh=0.55):
-
+    
     gss3 = GroupShuffleSplit(n_splits=10, train_size=0.8, random_state=42)
     all_time_auc_emory = []
     ppv_time = []
@@ -32,9 +34,17 @@ def test_performance(model, data, hours=[6],thresh=0.55):
     tp_all = []
     y_all_pred_hf_covid_try = []
     y_all_true_hf_covid_try = []
+    
+    target = 'Label'
+    IDcol = 'id'
+    sub_id = 'subject_id'
+    hadm_id = 'hadm_id'
+    time = 'time'
+
+    predictors = [x for x in data.columns if x not in [target, IDcol, time, hadm_id, sub_id,'weight']]
 
     for train_idx, test_idx in gss3.split(data, data['Label'], data['subject_id']):
-
+        print('yes')
         train_emory = data.iloc[train_idx]
 
         uniIds_emory = train_emory['subject_id'].unique()
@@ -81,7 +91,9 @@ def test_performance(model, data, hours=[6],thresh=0.55):
                     fn_all.append(0)
                     tn_all.append(cm1[0][0])
                     tp_all.append(0)           
-
+            
+            print('Y Pred',y_pred)
+            print('Y True',y_pred)
             auc_time_emory.append((metrics.roc_auc_score(y_pred, y_true),hour*2))
             if hour in hours:
                 cm = confusion_matrix(y_pred,(y_true>thresh)*1)

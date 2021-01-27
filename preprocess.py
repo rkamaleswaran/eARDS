@@ -4,7 +4,52 @@ import numpy as np
 from multiprocessing import Pool
 from tqdm import tqdm
 
-def load_data(data_path, demgraphic_path, age_path, comorbidity_path, dataset='HF', time_before_onset=24, o_window=0, p_window=1, onset_after=8):
+def f_map(data):
+    chunks=[data[i::5] for i in range(5)]
+    pool = Pool(processes=5)
+    result = pool.map(xgboost_data_creation,chunks)
+
+    return result
+
+def xgboost_data_creation(data):
+    for i in range(len(data)):
+      data[i] = data[i].drop(['ratio'],axis=1)
+    var_to_impute = [x for x in data[0].columns if x not in ['mech_ventilation','height','oxygen_therapy','subject_id','time_index']]
+      
+    print(1) 
+    df_median = data[0][var_to_impute].median().add_suffix('_median').to_frame().transpose()
+    for i in range(len(data)-1):
+      df_median = df_median.append(data[i+1][var_to_impute].median().add_suffix('_median').to_frame().transpose(),ignore_index=True)
+    print(2)
+    df_max = data[0].max().add_suffix('_max').to_frame().transpose()
+    for i in range(len(data)-1):
+      df_max = df_max.append(data[i+1].max().add_suffix('_max').to_frame().transpose(),ignore_index=True)
+    print(3)
+    df_min = data[0][var_to_impute].min().add_suffix('_min').to_frame().transpose()
+    for i in range(len(data)-1):
+      df_min = df_min.append(data[i+1][var_to_impute].min().add_suffix('_min').to_frame().transpose(),ignore_index=True)
+    print(4)
+    df_std = data[0][var_to_impute].std().add_suffix('_std').to_frame().transpose()
+    for i in range(len(data)-1):
+      df_std = df_std.append(data[i+1][var_to_impute].std().add_suffix('_std').to_frame().transpose(),ignore_index=True)
+    print(5)
+    df_skew = data[0][var_to_impute].skew().add_suffix('_skew').to_frame().transpose()
+    for i in range(len(data)-1):
+      df_skew = df_skew.append(data[i+1][var_to_impute].skew().add_suffix('_skew').to_frame().transpose(),ignore_index=True)
+    print(6)
+
+    
+    df_data = df_median
+    df_data = df_data.join(df_max)
+    df_data = df_data.join(df_min)
+    df_data = df_data.join(df_std)
+    df_data = df_data.join(df_skew)
+
+    return df_data
+
+
+
+def load_data(data_path, demgraphic_path, age_path, comorbidity_path, dataset='HF', time_before_onset=24, o_window=24, p_window=4, onset_after=1):
 
   def timedelta_to_hour(time):
       d = 24*(time.days)
@@ -67,7 +112,6 @@ def load_data(data_path, demgraphic_path, age_path, comorbidity_path, dataset='H
 
 
 
-
   def preprocessing(dataset, per_to_num_dic, num_to_per_dic, uniIDS, criterion, time_before_onset, o_window, p_window, onset_after):
       
       dataset = dataset.rename(columns={'personid':'subject_id'})
@@ -79,8 +123,10 @@ def load_data(data_path, demgraphic_path, age_path, comorbidity_path, dataset='H
       dataSubID = [] 
    
       for id in tqdm(range(len(uniSubIDs))):
-          dataSubID.append(dataset[dataset['subject_id'] == num_to_per_dic[uniSubIDs[id]]])
-      
+          dataSubID.append(dataset[dataset['subject_id'] == uniSubIDs[id]])
+          if id>50:
+            break
+     
       print('Data Segregation Done')
         
       for i in range(len(dataSubID)):    
@@ -169,42 +215,6 @@ def load_data(data_path, demgraphic_path, age_path, comorbidity_path, dataset='H
       return training_ards_patients, training_nonards_patients
 
 
-  def xgboost_data_creation(data):
-    for i in range(len(data)):
-      data[i] = data[i].drop(['ratio'],axis=1)
-    var_to_impute = [x for x in data[0].columns if x not in ['mech_ventilation','height','oxygen_therapy','subject_id','time_index']]
-      
-    print(1) 
-    df_median = data[0][var_to_impute].median().add_suffix('_median').to_frame().transpose()
-    for i in range(len(data)-1):
-      df_median = df_median.append(data[i+1][var_to_impute].median().add_suffix('_median').to_frame().transpose(),ignore_index=True)
-    print(2)
-    df_max = data[0].max().add_suffix('_max').to_frame().transpose()
-    for i in range(len(data)-1):
-      df_max = df_max.append(data[i+1].max().add_suffix('_max').to_frame().transpose(),ignore_index=True)
-    print(3)
-    df_min = data[0][var_to_impute].min().add_suffix('_min').to_frame().transpose()
-    for i in range(len(data)-1):
-      df_min = df_min.append(data[i+1][var_to_impute].min().add_suffix('_min').to_frame().transpose(),ignore_index=True)
-    print(4)
-    df_std = data[0][var_to_impute].std().add_suffix('_std').to_frame().transpose()
-    for i in range(len(data)-1):
-      df_std = df_std.append(data[i+1][var_to_impute].std().add_suffix('_std').to_frame().transpose(),ignore_index=True)
-    print(5)
-    df_skew = data[0][var_to_impute].skew().add_suffix('_skew').to_frame().transpose()
-    for i in range(len(data)-1):
-      df_skew = df_skew.append(data[i+1][var_to_impute].skew().add_suffix('_skew').to_frame().transpose(),ignore_index=True)
-    print(6)
-
-    
-    df_data = df_median
-    df_data = df_data.join(df_max)
-    df_data = df_data.join(df_min)
-    df_data = df_data.join(df_std)
-    df_data = df_data.join(df_skew)
-
-    return df_data
-
   data_try = pd.read_csv(data_path)
 
   if dataset=='HF':
@@ -259,14 +269,6 @@ def load_data(data_path, demgraphic_path, age_path, comorbidity_path, dataset='H
 
     
     return ards_patients, nonards_patients
-
-  def f_map(data):
-    
-    chunks=[data[i::5] for i in range(5)]
-    pool = Pool(processes=5)
-    result = pool.map(xgboost_data_creation,chunks)
-
-    return result
 
 
   def preproces_ards_data(data):
@@ -325,7 +327,7 @@ def load_data(data_path, demgraphic_path, age_path, comorbidity_path, dataset='H
   for ids in uniperIDs:
       num_to_per_dic[per_to_num_dic[ids]] = ids
     
-  training_ards, training_nonards = preprocessing(data_try, num_to_per_dic, per_to_num_dic, uniperIDs, 'berlin', time_before_onset, o_window, p_window, onset_after)
+  training_ards, training_nonards = preprocessing(data_try, per_to_num_dic, num_to_per_dic, uniperIDs, 'berlin', time_before_onset, o_window, p_window, onset_after)
   ards_data, nonards_data = data_creation(training_ards,  training_nonards, 1, 8)
 
   df1 = f_map(ards_data)
