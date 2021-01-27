@@ -124,8 +124,6 @@ def load_data(data_path, demgraphic_path, age_path, comorbidity_path, dataset='H
    
       for id in tqdm(range(len(uniSubIDs))):
           dataSubID.append(dataset[dataset['subject_id'] == uniSubIDs[id]])
-          if id>50:
-            break
      
       print('Data Segregation Done')
         
